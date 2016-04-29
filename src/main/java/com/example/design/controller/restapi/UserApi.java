@@ -1,23 +1,27 @@
 package com.example.design.controller.restapi;
 
 import com.example.design.authorization.annotation.Authorization;
+import com.example.design.authorization.annotation.CurrentUser;
 import com.example.design.constant.Role;
 import com.example.design.model.Comment;
+import com.example.design.model.Cooking;
 import com.example.design.model.User;
 import com.example.design.service.impl.CommentService;
+import com.example.design.service.impl.CookingService;
+import com.example.design.service.impl.FriendService;
 import com.example.design.service.impl.UserService;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.Assert;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
 
 
 /**
@@ -33,6 +37,10 @@ public class UserApi {
   private UserService userService;
   @Autowired
   private CommentService commentService;
+  @Autowired
+  private CookingService cookingService;
+  @Autowired
+  private FriendService friendService;
 
 
   /**
@@ -41,8 +49,6 @@ public class UserApi {
    * @param id user id.
    * @return user.
    */
-  @ApiOperation(value = "获取用户详细信息", notes = "根据url的id来获取用户详细信息")
-  @ApiParam(name = "id", value = "用户ID", required = true)
   @RequestMapping("{id}")
   public ResponseEntity getById(@PathVariable long id) {
     User user = userService.id(id);
@@ -50,6 +56,39 @@ public class UserApi {
       return ResponseEntity.notFound().build();
     }
     return ResponseEntity.ok(user);
+  }
+
+  /**
+   * 修改用户个人信息
+   */
+  @RequestMapping(value = "", method = RequestMethod.PUT)
+  @Authorization({Role.USER})
+  public ResponseEntity changeInfo(@RequestBody User user) {
+    /**
+     * 修改个人信息.
+     */
+    int count = userService.updateInfo(user);
+    if (1 == count) {
+      return ResponseEntity.ok(user);
+    }
+    return ResponseEntity.ok("修改失败");
+
+  }
+
+  /**
+   * 修改密码
+   */
+  @RequestMapping(value = "", method = RequestMethod.POST)
+  @Authorization({Role.USER})
+  public ResponseEntity changePassword(@CurrentUser User user, String password, String newPasswd) {
+    String account = user.getAccount();
+    User old = userService.getByAccountName(account);
+    Assert.notNull(password, "password cannot be empty");
+    Assert.notNull(newPasswd, "new password cannot be empty");
+    if (password.equals(old.getPassword())) {
+      userService.updatePassword(account, newPasswd);
+    }
+    return ResponseEntity.ok("密码有误");
   }
 
   /**
@@ -88,7 +127,11 @@ public class UserApi {
    */
   @RequestMapping("{id}/cooking")
   public ResponseEntity getCookingsByUserId(@PathVariable long id) {
-    return null;
+    List<Cooking> cookings = cookingService.findAllCookingByUserId(id);
+    if (cookings == null) {
+      return ResponseEntity.notFound().build();
+    }
+    return new ResponseEntity<>(cookings, HttpStatus.OK);
   }
 
   /**
@@ -109,8 +152,12 @@ public class UserApi {
    * @return 朋友列表.
    */
   @RequestMapping("{id}/friend")
-  public RequestMapping getFriendsByUserId(@PathVariable long id) {
-    return null;
+  public ResponseEntity getFriendsByUserId(@PathVariable long id) {
+    List<User> friends = friendService.getFriendsByUserId(id);
+    if (friends == null) {
+      return ResponseEntity.notFound().build();
+    }
+    return new ResponseEntity<>(friends, HttpStatus.OK);
   }
 
   /**
@@ -148,6 +195,20 @@ public class UserApi {
   @RequestMapping("{id}/message")
   public ResponseEntity getMessageByUserId(@PathVariable long id) {
     return null;
+  }
+
+  /**
+   * 修改用户个人信息.
+   */
+  @RequestMapping(value = "{userId}", method = RequestMethod.PUT)
+  @Authorization({Role.USER})
+  public ResponseEntity changeInfo(@PathVariable long userId, @RequestBody User user) {
+    int count = userService.updateInfo(user);
+    if (1 == count) {
+      return ResponseEntity.ok(user);
+    }
+    return ResponseEntity.ok("修改失败");
+
   }
 
 }
