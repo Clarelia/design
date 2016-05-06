@@ -5,10 +5,17 @@ import com.example.design.authorization.annotation.CurrentUser;
 import com.example.design.constant.Role;
 import com.example.design.model.Comment;
 import com.example.design.model.Cooking;
+import com.example.design.model.Menu;
+import com.example.design.model.Message;
+import com.example.design.model.Show;
 import com.example.design.model.User;
 import com.example.design.service.impl.CommentService;
 import com.example.design.service.impl.CookingService;
 import com.example.design.service.impl.FriendService;
+import com.example.design.service.impl.MenuService;
+import com.example.design.service.impl.MessageService;
+import com.example.design.service.impl.ReportService;
+import com.example.design.service.impl.ShowService;
 import com.example.design.service.impl.UserService;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,7 +48,14 @@ public class UserApi {
   private CookingService cookingService;
   @Autowired
   private FriendService friendService;
-
+  @Autowired
+  private ShowService showService;
+  @Autowired
+  private MenuService menuService;
+  @Autowired
+  private MessageService messageService;
+  @Autowired
+  private ReportService reportService;
 
   /**
    * 获取用户信息
@@ -89,18 +103,6 @@ public class UserApi {
       userService.updatePassword(account, newPasswd);
     }
     return ResponseEntity.ok("密码有误");
-  }
-
-  /**
-   * 获取用户作品.
-   *
-   * @param id 用户id.
-   * @return 作品列表.
-   */
-  @RequestMapping("{id}/article")
-  @Authorization({Role.ADMIN, Role.USER})
-  public ResponseEntity getArticlesByUserId(@PathVariable long id) {
-    return null;
   }
 
   /**
@@ -168,7 +170,11 @@ public class UserApi {
    */
   @RequestMapping("{id}/menu")
   public ResponseEntity getMenusByUserId(@PathVariable long id) {
-    return null;
+    List<Menu> menus = menuService.findAllMenuByUserId(id);
+    if (menus == null) {
+      return ResponseEntity.notFound().build();
+    }
+    return new ResponseEntity<>(menus, HttpStatus.OK);
   }
 
   /**
@@ -187,14 +193,20 @@ public class UserApi {
     return null;
   }
 
-  @RequestMapping("{id}/report")
-  public ResponseEntity getReportsByUserId(@PathVariable long id) {
-    return null;
-  }
-
+  /**
+   * 查找用户所发和所接所有message
+   *
+   * @param id messageUserId
+   * @return message
+   */
   @RequestMapping("{id}/message")
-  public ResponseEntity getMessageByUserId(@PathVariable long id) {
-    return null;
+  public ResponseEntity getMessagesByMessageUserId(@PathVariable long id) {
+    List<Message> messages = messageService.getByMessageUserId(id);
+    messages.addAll(messageService.getByUserId(id));
+    if (messages.isEmpty()) {
+      return ResponseEntity.notFound().build();
+    }
+    return new ResponseEntity<>(messages, HttpStatus.OK);
   }
 
   /**
@@ -211,4 +223,51 @@ public class UserApi {
 
   }
 
+  /**
+   * 返回指定用户id 的菜谱列表.
+   *
+   * @param id 用户 id.
+   * @return 菜谱列表.
+   */
+  @RequestMapping(value = "{id}/cooking", method = RequestMethod.GET)
+//  @Authorization({Role.USER, Role.ADMIN, Role.GUEST, Role.LIMITED_USER})
+  public ResponseEntity cookingByuserId(@PathVariable long id) {
+    List<Cooking> list = cookingService.findAllCookingByUserId(id);
+    if (list == null) {
+      return ResponseEntity.notFound().build();
+    }
+    return ResponseEntity.ok(list);
+  }
+
+  /**
+   * 返回指定用户id 的作品列表.
+   *
+   * @param id 用户 id.
+   * @return 作品列表.
+   */
+  @RequestMapping(value = "{id}/show", method = RequestMethod.GET)
+//  @Authorization({Role.USER, Role.ADMIN, Role.LIMITED_USER, Role.GUEST})
+  public ResponseEntity showByUserId(@PathVariable long id) {
+    List<Show> list = showService.findAllShowByUserId(id);
+    if (list == null) {
+      return ResponseEntity.notFound().build();
+    }
+    return ResponseEntity.ok(list);
+  }
+
+  /**
+   * 返回指定用户id 的菜单列表.
+   *
+   * @param id 用户 id.
+   * @return 菜单列表.
+   */
+  @RequestMapping(value = "{id}/menu", method = RequestMethod.GET)
+//  @Authorization({Role.USER, Role.ADMIN, Role.LIMITED_USER, Role.GUEST})
+  public ResponseEntity menuByUserId(@PathVariable long id) {
+    List<Menu> list = menuService.findAllMenuByUserId(id);
+    if (list == null) {
+      return ResponseEntity.notFound().build();
+    }
+    return ResponseEntity.ok(list);
+  }
 }

@@ -4,7 +4,10 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 /**
- * spring app 的运行接口. Created by lxh on 4/13/16.
+ * Spring app 的运行接口.
+ *
+ * @author lxh
+ * @version 0.1
  */
 @SpringBootApplication
 public class Application {
